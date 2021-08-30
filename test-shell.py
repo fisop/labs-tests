@@ -42,7 +42,7 @@ def launch_test(name, stdin=b'echo hi', shell_binary='./example-shell/sh', timeo
     print("PASS test: {}".format(name))
     return True
 
-shell_binary="./example-shell-2/sh"
+shell_binary="./example-shell/sh"
 reflector_aux="/home/vagrant/lab-tests/reflector"
 
 def test_simple_echo():
@@ -111,11 +111,27 @@ def test_pipes_does_not_leak_fds():
     global reflector_aux
     filename=os.path.join(tempdir, "leaks-pipes.txt")
     name="Test pipes does leak fds"
-    command="sleep 10 | echo hi | cat - | cat - | {} {}\n".format(reflector_aux, filename)
+    command="echo hi | cat - | cat - | {} {}\n".format(reflector_aux, filename)
     expected_stdout="3 {}\n".format(filename)
     launch_test(name,
         stdin=command.encode(),
         shell_binary="sh -c \"" + shell_binary + " 2>/dev/null 1>/dev/null; wc -l {}\"".format(filename),
+        expected_stdout=expected_stdout,
+        expected_stderr=None,
+        check_stdout=True,
+        check_stderr=True
+        )
+
+def test_cd():
+    global shell_binary
+    global reflector_aux
+    filename=os.path.join(tempdir, "leaks-pipes.txt")
+    name="Test pipes does leak fds"
+    command="cd /home\n/bin/pwd\ncd /proc\n/bin/pwd\ncd sys\n/bin/pwd\ncd kernel\n/bin/pwd\ncd ..\n/bin/pwd\ncd\n/bin/pwd\n".format(reflector_aux, filename)
+    expected_stdout="/home\n/proc\n/proc/sys\n/proc/sys/kernel\n/proc/sys\n/home\n"
+    launch_test(name,
+        stdin=command.encode(),
+        shell_binary="HOME=/home sh -c \"" + shell_binary + "\"",
         expected_stdout=expected_stdout,
         expected_stderr=None,
         check_stdout=True,
@@ -130,5 +146,6 @@ test_simple_env()
 test_redirect_does_not_create()
 test_redirect_does_not_leak_fds()
 test_pipes_does_not_leak_fds()
+test_cd()
 
 shutil.rmtree(tempdir)
