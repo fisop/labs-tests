@@ -1,0 +1,2 @@
+# automatic tests for labs
+
