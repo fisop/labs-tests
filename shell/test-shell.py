@@ -84,10 +84,9 @@ def custom_test(subs_map, filepath: str):
     sh.run()
     return
 
-def run_tests(shell_binary: str):
+def run_tests(shell_binary: str, reflector_aux: str):
     # This has to be an absolute path, since it will be invoked from the
     # shell-to-test and we cannot guaranty the home it will be running on.
-    reflector_aux="/home/vagrant/lab-tests/shell/reflector"
     tempdir=tempfile.mkdtemp(suffix='-shell-test')
     print("Test temp files will be stored in {}".format(tempdir))
 
@@ -120,9 +119,9 @@ def run_tests(shell_binary: str):
     shutil.rmtree(tempdir)
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("{}: {} <test-shell-binary>".format(sys.argv[0], sys.argv[0]))
+    if len(sys.argv) < 3:
+        print("{}: {} <test-shell-binary> <reflector>".format(sys.argv[0], sys.argv[0]))
         exit()
     shell_binary=sys.argv[1]
-    print(shell_binary)
-    run_tests(shell_binary)
+    reflector_aux=sys.argv[2]
+    run_tests(shell_binary, reflector_aux)

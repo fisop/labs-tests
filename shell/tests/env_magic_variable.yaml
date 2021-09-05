@@ -10,5 +10,5 @@ stdin: |2
   echo $?
 expected_stdout: |2
   0
-  2 
+  2
   0
