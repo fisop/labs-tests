@@ -10,6 +10,7 @@ from yaml.loader import SafeLoader
 from subprocess import Popen, PIPE, STDOUT
 from termcolor import cprint
 
+# TODO: this is ok, but it should not be part of lauch_test function, maybe move outside?
 def compare_strings(current, expected):
     if current != expected:
         message="""
@@ -24,6 +25,7 @@ def compare_strings(current, expected):
         return message
     return None
 
+# TODO: move this into ShellTest class
 def launch_test(name, stdin=b'echo hi', shell_binary='./example-shell/sh', timeout=100, expected_stdout=None, expected_stderr=None, check_stdout=False, check_stderr=False, shell=True):
     """launch_test execute an instance of the shell binary to test (located at _shell_binary_)
     with a given _stdin_ and compares stdout to _expected_stdout_ and stderr to _expected_stderr_.
@@ -51,6 +53,7 @@ def substitude_vars(target: str, subs):
 
 class ShellTest():
     def __init__(self, filepath: str, sub_map):
+        # TODO: improve substitution (maybe don't do this here?)
         data = ""
         with open(filepath) as f:
             data = yaml.load(f, Loader=SafeLoader)
@@ -80,18 +83,19 @@ def custom_test(subs_map, filepath: str):
     sh.run()
     return
 
-def run_custom_test(shell_binary: str):
-    global tempdir
-    global reflector_aux
+def run_tests(shell_binary: str):
+    # This has to be an absolute path, since it will be invoked from the
+    # shell-to-test and we cannot guaranty the home it will be running on.
     reflector_aux="/home/vagrant/lab-tests/reflector"
     tempdir=tempfile.mkdtemp(suffix='-shell-test')
-    print("Test results will be stored in {}".format(tempdir))
+    print("Test temp files will be stored in {}".format(tempdir))
 
     subs_map = [('{shell_binary}', shell_binary),
             ('{tempdir}', tempdir),
             ('{reflector}', reflector_aux),
             ]
-    
+
+    # Reading tests from...
     test_files_path = "./tests"
     tests = [join(test_files_path,f) for f in listdir(test_files_path) if isfile(join(test_files_path, f))]
     
@@ -118,4 +122,4 @@ if __name__ == "__main__":
         exit()
     shell_binary=sys.argv[1]
     print(shell_binary)
-    run_custom_test(shell_binary)
+    run_tests(shell_binary)
