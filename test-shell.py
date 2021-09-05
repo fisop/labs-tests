@@ -4,6 +4,8 @@ import shutil
 import sys
 import tempfile
 import yaml
+from os import listdir
+from os.path import isfile, join
 from yaml.loader import SafeLoader
 from subprocess import Popen, PIPE, STDOUT
 from termcolor import cprint
@@ -90,23 +92,15 @@ def run_custom_test(shell_binary: str):
             ('{reflector}', reflector_aux),
             ]
     
-    tests = ['simple_echo',
-            'simple_env',
-            'redirect_does_not_create',
-            'redirect_does_not_leak_fds',
-            'pipes_does_not_leak_fds',
-            'cd_basic',
-            'cd_home',
-            'cd_back',
-            'redirect_stdin',
-            ]
-
+    test_files_path = "./tests"
+    tests = [join(test_files_path,f) for f in listdir(test_files_path) if isfile(join(test_files_path, f))]
+    
     count = 1
     failed = 0
     total = len(tests)
     for test in tests:
         try:
-            custom_test(subs_map, "./tests/{}.yaml".format(test))
+            custom_test(subs_map, test)
             cprint("PASS {}/{}: {}".format(count, total, test), "green")
         except Exception as e:
             cprint("FAIL {}/{}: {}. Exception ocurred: {}".format(count, total, test, e), "red")
