@@ -1,0 +1,89 @@
+diff --git a/Makefile b/Makefile
+index 313f5e8..bfaaba3 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1,5 +1,5 @@
+ CFLAGS := -ggdb3 -O2 -Wall -Wextra -std=gnu11
+-CFLAGS += -Wmissing-prototypes
++CFLAGS += -Wmissing-prototypes -D SHELL_TEST -D SHELL_TEST_INTERACTIVE
+ 
+ EXEC := sh
+ SRCS := $(wildcard *.c)
+diff --git a/defs.h b/defs.h
+index 5fbf21d..685e99f 100644
+--- a/defs.h
++++ b/defs.h
+@@ -16,9 +16,15 @@
+ #include <sys/types.h>
+ 
+ // color scape strings
++#ifndef SHELL_TEST
+ #define COLOR_BLUE "\x1b[34m"
+ #define COLOR_RED "\x1b[31m"
+ #define COLOR_RESET "\x1b[0m"
++#else
++#define COLOR_BLUE ""
++#define COLOR_RED ""
++#define COLOR_RESET ""
++#endif
+ 
+ #define END_STRING '\0'
+ #define END_LINE '\n'
+diff --git a/printstatus.c b/printstatus.c
+index 5662c8b..ab688d0 100644
+--- a/printstatus.c
++++ b/printstatus.c
+@@ -4,6 +4,7 @@
+ void
+ print_status_info(struct cmd* cmd) {
+ 
++    #ifndef SHELL_TEST_INTERACTIVE
+ 	if (strlen(cmd->scmd) == 0
+ 		|| cmd->type == PIPE)
+ 		return;
+@@ -26,13 +27,16 @@ print_status_info(struct cmd* cmd) {
+ 			COLOR_BLUE, cmd->scmd, -WSTOPSIG(status), COLOR_RESET);
+ 		status = -WSTOPSIG(status);
+ 	}
++    #endif
+ }
+ 
+ // prints info when a background process is spawned
+ void
+ print_back_info(struct cmd* back) {
+ 
++    #ifndef SHELL_TEST_INTERACTIVE
+ 	fprintf(stdout, "%s  [PID=%d] %s\n",
+ 		COLOR_BLUE, back->pid, COLOR_RESET);
++    #endif
+ }
+ 
+diff --git a/readline.c b/readline.c
+index 8d6513e..73b6284 100644
+--- a/readline.c
++++ b/readline.c
+@@ -10,8 +10,10 @@ read_line(const char* promt) {
+ 
+ 	int i = 0,
+ 	    c = 0;
++    #ifndef SHELL_TEST_INTERACTIVE
+ 	fprintf(stdout, "%s %s %s\n", COLOR_RED, promt, COLOR_RESET);
+ 	fprintf(stdout, "%s", "$ ");
++    #endif
+ 
+ 	memset(buffer, 0, BUFLEN);
+ 
+diff --git a/runcmd.c b/runcmd.c
+index 276f2ce..9603467 100644
+--- a/runcmd.c
++++ b/runcmd.c
+@@ -39,6 +39,9 @@ run_cmd(char* cmd) {
+ 	// parses the command line
+ 	parsed = parse_line(cmd);
+ 
++    fflush(stdout);
++    fflush(stderr);
++
+ 	// forks and run the command
+ 	if ((p = fork()) == 0) {
+ 
