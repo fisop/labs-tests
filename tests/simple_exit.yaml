@@ -1,0 +1,11 @@
+name: simple_exit
+description: "Test exit built-in"
+explain: "If this fails, your shell does not correctly exit"
+command: |2
+  {shell_binary}
+stdin: |2
+  echo hi
+  exit
+  echo hi
+expected_stdout: |2
+  hi

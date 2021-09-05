@@ -21,7 +21,7 @@ def compare_strings(current, expected):
         But got:
         
         {}
-        """.format(expected.encode() if expected else None, current.encode() if current else None)
+        """.format(expected if expected else None, current if current else None)
         return message
     return None
 
