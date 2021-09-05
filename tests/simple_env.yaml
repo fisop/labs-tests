@@ -1,0 +1,11 @@
+name: simple_env
+description: "Test simple env variable"
+explain: "If this fails, your shell does not correctly set env variables"
+command: |2
+  sh -c "{shell_binary}" | grep HELLO
+stdin: |2
+  env
+  HELLO=4 env
+  env
+expected_stdout: |2
+  HELLO=4

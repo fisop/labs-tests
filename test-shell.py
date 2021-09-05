@@ -3,11 +3,10 @@ import os
 import shutil
 import sys
 import tempfile
+import yaml
+from yaml.loader import SafeLoader
 from subprocess import Popen, PIPE, STDOUT
 from termcolor import cprint
-
-def multiline(cmds):
-    return '\n'.join([cmd.strip() for cmd in cmds]) + '\n'
 
 def compare_strings(current, expected):
     if current != expected:
@@ -40,143 +39,77 @@ def launch_test(name, stdin=b'echo hi', shell_binary='./example-shell/sh', timeo
         if msg:
             raise Exception("Check stderr failed: {}".format(msg))
 
-def test_simple_echo(shell_binary: str):
-    name="Test simple echo command"
-    stdin="echo hi\n"
-    expected_stdout="hi\n"
-    launch_test(name,
-        stdin=stdin.encode(),
-        shell_binary=shell_binary,
-        expected_stdout=expected_stdout,
-        check_stdout=True
-        )
+def substitude_vars(target: str, subs):
+    if not target:
+        return target
 
-def test_simple_env(shell_binary: str):
-    name="Test simple env "
-    stdin=multiline("""env
-                    HELLO=4 env
-                    env""".splitlines())
-    expected_stdout="HELLO=4\n"
-    command="sh -c \"{}\"".format(shell_binary + " | grep HELLO")
-    launch_test(name,
-        stdin=stdin.encode(),
-        shell_binary=command,
-        expected_stdout=expected_stdout,
-        expected_stderr=None,
-        check_stdout=True,
-        check_stderr=True
-        )
+    for subs_from, subs_to in subs:
+        target = target.replace(subs_from, subs_to)
+    return target
 
-def test_redirect_does_not_create(shell_binary: str):
-    # sleep 100 <in.txt >out.txt
-    global tempdir
-    filename=os.path.join(tempdir, "no-existe.txt")
-    name="Test stdin redirect does not create file"
-    command="echo <{}\n".format(filename)
-    expected_stdout="ls: cannot access '{}': No such file or directory\n".format(filename)
-    launch_test(name,
-        stdin=command.encode(),
-        shell_binary="sh -c \"" + shell_binary + " 2>/dev/null 1>/dev/null; ls {}\"".format(filename),
-        expected_stdout=expected_stdout,
-        expected_stderr=None,
-        check_stdout=True,
-        check_stderr=True
-        )
+class ShellTest():
+    def __init__(self, filepath: str, sub_map):
+        data = ""
+        with open(filepath) as f:
+            data = yaml.load(f, Loader=SafeLoader)
+        self.name = data['name']
+        self.description = data['description']
+        self.command = data['command']
+        self.command = substitude_vars(self.command, sub_map)
+        self.stdin = data['stdin'] if 'stdin' in data else None
+        self.stdin = substitude_vars(self.stdin, sub_map)
+        self.expected_stdout = data['expected_stdout'] if 'expected_stdout' in data else None
+        self.expected_stdout = substitude_vars(self.expected_stdout, sub_map)
+        self.expected_stderr = data['expected_stderr'] if 'expected_stderr' in data else None
+        self.expected_stderr = substitude_vars(self.expected_stderr, sub_map)
 
-def test_redirect_does_not_leak_fds(shell_binary: str):
+    def run(self):
+        launch_test(self.name,
+            stdin=self.stdin.encode(),
+            shell_binary=self.command,
+            expected_stdout=self.expected_stdout,
+            expected_stderr=self.expected_stderr,
+            check_stdout=True,
+            check_stderr=True
+            )
+
+def custom_test(subs_map, filepath: str):
+    sh = ShellTest(filepath, subs_map)
+    sh.run()
+    return
+
+def run_custom_test(shell_binary: str):
     global tempdir
     global reflector_aux
-    filename=os.path.join(tempdir, "leaks-redirect.txt")
-    name="Test redirect does leak fds"
-    command="{} {}\n".format(reflector_aux, filename)
-    expected_stdout="3 {}\n".format(filename)
-    launch_test(name,
-        stdin=command.encode(),
-        shell_binary="sh -c \"" + shell_binary + " 2>/dev/null 1>/dev/null; wc -l {}\"".format(filename),
-        expected_stdout=expected_stdout,
-        expected_stderr=None,
-        check_stdout=True,
-        check_stderr=True
-        )
-
-def test_pipes_does_not_leak_fds(shell_binary: str):
-    global tempdir
-    global reflector_aux
-    filename=os.path.join(tempdir, "leaks-pipes.txt")
-    name="Test pipes does leak fds"
-    stdin=multiline("echo hi | cat - | cat - | {} {}".format(reflector_aux, filename).splitlines())
-    expected_stdout=multiline("3 {}".format(filename).splitlines())
-    command="HOME=/home sh -c \"{}\"".format(
-            shell_binary + " 2>/dev/null 1>/dev/null; wc -l {}".format(filename))
-    launch_test(name,
-        stdin=stdin.encode(),
-        shell_binary=command,
-        expected_stdout=expected_stdout,
-        expected_stderr=None,
-        check_stdout=True,
-        check_stderr=True
-        )
-
-def test_cd(shell_binary: str):
-    global reflector_aux
-    filename=os.path.join(tempdir, "leaks-pipes.txt")
-    name="Test pipes does leak fds"
-    stdin=multiline(["cd /home",
-            "/bin/pwd",
-            "cd /proc",
-            "/bin/pwd",
-            "cd sys",
-            "/bin/pwd",
-            "cd kernel",
-            "/bin/pwd",
-            "cd ..",
-            "/bin/pwd",
-            "cd",
-            "/bin/pwd"])
-    expected_stdout=multiline("""/home
-                              /proc
-                              /proc/sys
-                              /proc/sys/kernel
-                              /proc/sys
-                              /home""".splitlines())
-
-    command="HOME=/home sh -c \"{}\"".format(
-            shell_binary)
-
-    launch_test(name,
-        stdin=stdin.encode(),
-        shell_binary=command,
-        expected_stdout=expected_stdout,
-        expected_stderr=None,
-        check_stdout=True,
-        check_stderr=True
-        )
-
-
-def run_tests(shell_binary):
-    global tempdir
-    global reflector_aux
-    tests = [
-            test_simple_echo,
-            test_simple_env,
-            test_redirect_does_not_create,
-            test_redirect_does_not_leak_fds,
-            test_pipes_does_not_leak_fds,
-            test_cd
-            ]
     reflector_aux="/home/vagrant/lab-tests/reflector"
     tempdir=tempfile.mkdtemp(suffix='-shell-test')
     print("Test results will be stored in {}".format(tempdir))
+
+    subs_map = [('{shell_binary}', shell_binary),
+            ('{tempdir}', tempdir),
+            ('{reflector}', reflector_aux),
+            ]
+    
+    tests = ['simple_echo',
+            'simple_env',
+            'redirect_does_not_create',
+            'redirect_does_not_leak_fds',
+            'pipes_does_not_leak_fds',
+            'cd_basic',
+            'cd_home',
+            'cd_back',
+            'redirect_stdin',
+            ]
 
     count = 1
     failed = 0
     total = len(tests)
     for test in tests:
         try:
-            test(shell_binary)
-            cprint("PASS {}/{}: {}".format(count, total, test.__name__), "green")
+            custom_test(subs_map, "./tests/{}.yaml".format(test))
+            cprint("PASS {}/{}: {}".format(count, total, test), "green")
         except Exception as e:
-            cprint("FAIL {}/{}: {}. Exception ocurred: {}".format(count, total, test.__name__, e), "red")
+            cprint("FAIL {}/{}: {}. Exception ocurred: {}".format(count, total, test, e), "red")
             failed += 1
         finally:
             count += 1
@@ -191,4 +124,4 @@ if __name__ == "__main__":
         exit()
     shell_binary=sys.argv[1]
     print(shell_binary)
-    run_tests(shell_binary)
+    run_custom_test(shell_binary)
