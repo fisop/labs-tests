@@ -86,7 +86,7 @@ def custom_test(subs_map, filepath: str):
 def run_tests(shell_binary: str):
     # This has to be an absolute path, since it will be invoked from the
     # shell-to-test and we cannot guaranty the home it will be running on.
-    reflector_aux="/home/vagrant/lab-tests/reflector"
+    reflector_aux="/home/vagrant/lab-tests/shell/reflector"
     tempdir=tempfile.mkdtemp(suffix='-shell-test')
     print("Test temp files will be stored in {}".format(tempdir))
 
