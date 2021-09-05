@@ -1,6 +1,5 @@
 name: simple_env
 description: "Test simple env variable"
-explain: "If this fails, your shell does not correctly set env variables"
 command: |2
   {shell_binary} | grep HELLO
 stdin: |2

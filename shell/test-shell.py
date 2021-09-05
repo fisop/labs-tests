@@ -21,7 +21,8 @@ def compare_strings(current, expected):
         But got:
         
         {}
-        """.format(expected if expected else None, current if current else None)
+        """.format(expected.encode() if expected else None, current.encode() if expected else none)
+        # """.format(expected, current)
         return message
     return None
 
@@ -35,11 +36,11 @@ def launch_test(name, stdin=b'echo hi', shell_binary='./example-shell/sh', timeo
     p = Popen(shell_binary, stdin=PIPE, stdout=PIPE, stderr=STDOUT, shell=shell)
     (stdout, stderr) = p.communicate(input=stdin, timeout=timeout)
     if check_stdout:
-        msg = compare_strings(stdout.decode() if stdout else None, expected_stdout)
+        msg = compare_strings(stdout.decode() if stdout else None, expected_stdout if expected_stdout else None)
         if msg:
             raise Exception("Check stdout failed: {}".format(msg))
     if check_stderr:
-        msg = compare_strings(stderr.decode() if stderr else None, expected_stderr)
+        msg = compare_strings(stderr.decode() if stderr else None, expected_stderr if expected_stderr else None)
         if msg:
             raise Exception("Check stderr failed: {}".format(msg))
 
@@ -98,6 +99,8 @@ def run_tests(shell_binary: str):
     # Reading tests from...
     test_files_path = "./tests"
     tests = [join(test_files_path,f) for f in listdir(test_files_path) if isfile(join(test_files_path, f))]
+    ## Sort for consistent ordering
+    tests.sort()
     
     count = 1
     failed = 0

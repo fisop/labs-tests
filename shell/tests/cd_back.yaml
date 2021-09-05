@@ -3,6 +3,7 @@ description: "Tests that cd . and cd .. works correctly by checking pwd (no prom
 command: |2
   HOME=/home sh -c "{shell_binary}"
 stdin: |2
+  cd /home
   /bin/pwd
   cd /home
   /bin/pwd

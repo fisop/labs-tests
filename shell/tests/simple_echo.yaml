@@ -1,6 +1,5 @@
 name: simple_echo
 description: "Test simple echo command"
-explain: "If this fails, your shell cannot run echo hi"
 command: |2
   {shell_binary}
 stdin: |2
