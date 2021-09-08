@@ -5,14 +5,25 @@
 - [ttp](https://ttp.readthedocs.io/en/latest/index.html)
 
 Alcanza con ejecutar:
+
 ```bash
 pip install ttp
 ```
 
 ## Ejecutar
 
-```bash
-./run-tests FORK_LAB_DIR
-```
+Consultando la _ayuda_ disponible mediante el flag `-h` o `--help`, se obtiene:
 
-`FORK_LAB_DIR`: _path_ al directorio donde se encuentra la solución al lab _fork_ que se desea testear
+```
+usage: test-fork [-h] [-c {find,pingpong,xargs}] labpath
+
+Test runner for Lab Fork - FISOP
+
+positional arguments:
+  labpath               path to the lab under test
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -c {find,pingpong,xargs}, --command {find,pingpong,xargs}
+                        command to be tested
+```
