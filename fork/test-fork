@@ -1,0 +1,49 @@
+#!/usr/bin/env python3
+
+from subprocess import Popen
+from argparse import ArgumentParser
+
+COMMANDS = ['find', 'pingpong', 'xargs']
+
+def exec_test(lab_path, command):
+    p = Popen([f'./{command}-test.py', f'{lab_path}/{command}'])
+    p.wait()
+
+def exec_all_tests(lab_path):
+    for command in COMMANDS:
+        exec_test(lab_path, command)
+
+def make(lab_path):
+    # clean any previous compilation
+    p = Popen(['make', 'clean'], cwd=lab_path)
+    p.wait()
+
+    # compile the commands
+    p = Popen(['make'], cwd=lab_path)
+    p.wait()
+
+def main(lab_path, command):
+    make(lab_path)
+
+    if command is 'all':
+        exec_all_tests(lab_path)
+    else:
+        exec_test(lab_path, command)
+
+if __name__ == '__main__':
+    parser = ArgumentParser(description='Test runner for Lab Fork - FISOP')
+
+    parser.add_argument(
+        'labpath',
+        help='path to the lab under test')
+
+    parser.add_argument(
+        '-c',
+        '--command',
+        choices=COMMANDS,
+        default='all',
+        help='command to be tested')
+
+    args = parser.parse_args()
+
+    main(args.labpath, args.command)
