@@ -31,10 +31,15 @@ def remove_test_structure():
     rmtree('/tmp/fisop-fork')
 
 def exec_command(args):
-    return set(filter(
-        lambda l: l != '',
-        check_output(args, universal_newlines=True, cwd='/tmp/fisop-fork').split('\n')
-    ))
+    return set(
+        map(
+            lambda k: k[2:] if k.startswith("./") else k,
+            filter(
+                lambda l: l != '',
+                check_output(args, universal_newlines=True, cwd='/tmp/fisop-fork').split('\n')
+            )
+        )
+    )
 
 def are_equal(expected, current):
     # ^ symmetric difference operator
