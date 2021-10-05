@@ -26,7 +26,7 @@ CHILD_TEMPLATE = """
   - getpid me devuelve: {{ child_pid }}
   - getppid me devuelve: {{ parent_pid }}
   - recibo valor {{ random_number_recv }} vía fd={{ pipe_fd_recv }}
-  - reenvío valor {{ random_number_send }} en fd={{ pipe_fd_send }} y termino
+  - reenvío valor en fd={{ pipe_fd_send }} y termino
 """
 
 EPILOG_TEMPLATE = """
@@ -74,12 +74,9 @@ NUMBER_VALUES_RULES = [
     ('parent generated equal to child recv',
         lambda results: results['parent']['random_number'] ==
             results['child']['random_number_recv']),
-    ('child recv equal to sent',
-        lambda results: results['child']['random_number_recv'] ==
-            results['child']['random_number_send']),
     ('parent recv equal to child\'s sent',
         lambda results: results['epilog']['random_number_recv'] ==
-            results['child']['random_number_send']),
+            results['child']['random_number_recv']),
     ('parent recv equal to sent',
         lambda results: results['epilog']['random_number_recv'] ==
         results['parent']['random_number_send']),
