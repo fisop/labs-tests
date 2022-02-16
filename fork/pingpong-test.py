@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
+import re
 import sys
 
-from itertools import chain
+from unicodedata import normalize
 from subprocess import check_output
 
 from ttp import ttp
@@ -156,8 +157,29 @@ def execute_rules(results, rules):
 
     print(f'{success}/{total} passed')
 
+def sanitize_output(raw_output):
+    # remove accents
+    normalized = normalize("NFD", raw_output) \
+                    .encode("ascii", "ignore") \
+                    .decode()
+
+    formatted = normalized.lower()
+
+    # format output
+    formatted = re.sub(r' *- *|\t *- *', '-', formatted)
+    formatted = re.sub(r' *\n *\n *', '\n', formatted)
+    formatted = re.sub(r' *= *', '=', formatted)
+    formatted = re.sub(r' *, *', ', ', formatted)
+    formatted = re.sub(r':', '', formatted)
+    formatted = re.sub(r':|,|<|>', '', formatted)
+
+    return formatted
+
 def main(binary_path):
-    output = exec_command([binary_path])
+    print('COMMAND: pingpong')
+
+    output = exec_command(binary_path)
+    output = sanitize_output(output)
     results = parse_output(output)
 
     print('COMMAND: pingpong')
