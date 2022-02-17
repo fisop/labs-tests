@@ -7,95 +7,133 @@ from unicodedata import normalize
 from subprocess import check_output
 
 from ttp import ttp
-from utils import format_result
+from utils import color, format_result
+
+PROLOG_KEYWORDS = [
+    'parent_pid',
+    'first_pipe_read_fd',
+    'first_pipe_write_fd',
+    'second_pipe_read_fd',
+    'second_pipe_write_fd'
+]
 
 PROLOG_TEMPLATE = """
-Hola, soy PID {{ parent_pid }}:
-  - primer pipe me devuelve: [{{ first_pipe_read_fd }}, {{ first_pipe_write_fd }}]
-  - segundo pipe me devuelve: [{{ second_pipe_read_fd }}, {{ second_pipe_write_fd }}]
+hola soy pid {{ parent_pid }}
+-primer pipe me devuelve [{{ first_pipe_read_fd }} {{ first_pipe_write_fd }}]
+-segundo pipe me devuelve [{{ second_pipe_read_fd }} {{ second_pipe_write_fd }}]
 """
+
+PARENT_KEYWORDS = [
+    'child_pid',
+    'parent_pid',
+    'parent_parent_pid',
+    'random_number',
+    'random_number_send',
+    'pipe_fd_send'
+]
 
 PARENT_TEMPLATE = """
-Donde fork me devuelve {{ child_pid }}:
-  - getpid me devuelve: {{ parent_pid }}
-  - getppid me devuelve: {{ parent_parent_pid }}
-  - random me devuelve: {{ random_number }}
-  - envío valor {{ random_number_send }} a través de fd={{ pipe_fd_send }}
+donde fork me devuelve {{ child_pid }}
+-getpid me devuelve {{ parent_pid }}
+-getppid me devuelve {{ parent_parent_pid }}
+-random me devuelve {{ random_number }}
+-envio valor {{ random_number_send }} a traves de fd={{ pipe_fd_send }}
 """
+
+CHILD_KEYWORDS = [
+    'child_pid',
+    'parent_pid',
+    'random_number_recv',
+    'pipe_fd_recv',
+    'pipe_fd_send'
+]
 
 CHILD_TEMPLATE = """
-  - getpid me devuelve: {{ child_pid }}
-  - getppid me devuelve: {{ parent_pid }}
-  - recibo valor {{ random_number_recv }} vía fd={{ pipe_fd_recv }}
-  - reenvío valor en fd={{ pipe_fd_send }} y termino
+-getpid me devuelve {{ child_pid }}
+-getppid me devuelve {{ parent_pid }}
+-recibo valor {{ random_number_recv }} via fd={{ pipe_fd_recv }}
+-reenvio valor en fd={{ pipe_fd_send }} y termino
 """
 
+EPILOG_KEYWORDS = [
+    'parent_pid',
+    'random_number_recv',
+    'pipe_fd_recv'
+]
+
 EPILOG_TEMPLATE = """
-Hola, de nuevo PID {{ parent_pid }}:
-  - recibí valor {{ random_number_recv }} vía fd={{ pipe_fd_recv }}
+hola de nuevo pid {{ parent_pid }}
+-recibi valor {{ random_number_recv }} via fd={{ pipe_fd_recv }}
 """
 
 PIPE_FDS_RULES = [
-    ('first pipe correct fds',
+    ('[PROLOG] - first pipe correct fd numbers',
         lambda results: results['prolog']['first_pipe_read_fd'] <
             results['prolog']['first_pipe_write_fd']),
-    ('second pipe correct fds',
+    ('[PROLOG] - second pipe correct fd numbers',
         lambda results: results['prolog']['second_pipe_read_fd'] <
             results['prolog']['second_pipe_write_fd']),
-    ('parent send correct fd',
+    ('[PARENT] - correct fd number [SEND]',
         lambda results: results['prolog']['first_pipe_write_fd'] ==
             results['parent']['pipe_fd_send']),
-    ('child recv correct fd',
-        lambda results: results['child']['pipe_fd_recv'] ==
-            results['prolog']['first_pipe_read_fd']),
-    ('child send correct fd',
+    ('[PARENT] - correct fd number [RECV]',
+        lambda results: results['epilog']['pipe_fd_recv'] ==
+            results['prolog']['second_pipe_read_fd']),
+    ('[CHILD]  - correct fd number [SEND]',
         lambda results: results['child']['pipe_fd_send'] ==
             results['prolog']['second_pipe_write_fd']),
-    ('parent recv correct fd',
-        lambda results: results['epilog']['pipe_fd_recv'] ==
-            results['prolog']['second_pipe_read_fd'])
+    ('[CHILD]  - correct fd number [RECV]',
+        lambda results: results['child']['pipe_fd_recv'] ==
+            results['prolog']['first_pipe_read_fd'])
 ]
 
 PROCESS_IDS_RULES = [
-    ('parent pid correct', lambda results:
-        results['prolog']['parent_pid'] == results['parent']['parent_pid'] and
-        results['prolog']['parent_pid'] == results['epilog']['parent_pid']),
-    ('child\'s parent pid correct',
-        lambda results: results['prolog']['parent_pid'] == results['child']['parent_pid']),
-    ('parent\'s child pid correct',
+    ('[EPILOG] - correct pid number',
+        lambda results: results['epilog']['parent_pid'] == results['prolog']['parent_pid']),
+    ('[PARENT] - correct parent pid number',
+        lambda results: results['parent']['parent_pid'] == results['prolog']['parent_pid']),
+    ('[CHILD]  - correct parent pid number',
+        lambda results: results['child']['parent_pid'] == results['prolog']['parent_pid']),
+    ('[PARENT] - correct child pid number',
         lambda results: results['parent']['child_pid'] == results['child']['child_pid']),
-    ('parent\'s parent pid correct',
+    ('[PARENT] - correct relation of pid and ppid',
         lambda results: results['parent']['parent_parent_pid'] < results['parent']['parent_pid'])
 ]
 
 NUMBER_VALUES_RULES = [
-    ('parent generated equal to sent',
+    ('[PARENT] - correct relation of generated and sent value',
         lambda results: results['parent']['random_number'] ==
             results['parent']['random_number_send']),
-    ('parent generated equal to child recv',
+    ('[CHILD]  - correct relation of parent\'s generated and received value',
         lambda results: results['parent']['random_number'] ==
             results['child']['random_number_recv']),
-    ('parent recv equal to child\'s sent',
+    ('[PARENT] - correct relation of received and child\'s sent',
         lambda results: results['epilog']['random_number_recv'] ==
             results['child']['random_number_recv']),
-    ('parent recv equal to sent',
+    ('[EPILOG] - correct relation of parent\'s received and sent',
         lambda results: results['epilog']['random_number_recv'] ==
-        results['parent']['random_number_send']),
+            results['parent']['random_number_send']),
 ]
 
-def exec_command(args):
-    return check_output(args, universal_newlines=True)
+def exec_command(binary_path):
+    return check_output([binary_path], universal_newlines=True)
 
 def extract_values(results):
     """
     `results` can be in following forms:
         - f1: [ [ [ {}, {} ] ] ]
         - f2: [ [ {}, {} ] ]
+        - f3: [[]] - particular case of the f2
+                    but with no matches inside
     this functions returns the inner array of matching results
     to be analyzed later by the corresponding section parser
     """
 
     first_level = results[0]
+
+    if len(first_level) == 0:
+        return [{}]
+
     second_level = first_level[0]
 
     if type(second_level) is list:
@@ -111,31 +149,62 @@ def extract_section(result_lines, section_template):
 
     return extract_values(results)
 
+def validate_output(current_keys, expected_keys, context):
+    for k in expected_keys:
+        if k not in current_keys:
+            raise Exception(f"{color('PARSING ERROR', 'red')} - Keyword '{k}' not found in {context} section")
+
 def parse_prolog(result_lines):
     values = extract_section(result_lines, PROLOG_TEMPLATE)
 
-    return values[0]
+    res = values[0]
+    res_keys = res.keys()
+
+    validate_output(res_keys, PROLOG_KEYWORDS, 'PROLOG')
+
+    return res
 
 def parse_parent(result_lines):
     values = extract_section(result_lines, PARENT_TEMPLATE)
 
-    if 'random_number' in values[0]:
-        return values[0]
+    filtered_values = list(filter(lambda x: 'random_number' in x, values))
 
-    return values[1]
+    if len(filtered_values) == 0:
+        res = values[0]
+    else:
+        res = filtered_values[0]
+
+    res_keys = res.keys()
+
+    validate_output(res_keys, PARENT_KEYWORDS, 'PARENT')
+
+    return res
 
 def parse_child(result_lines):
     values = extract_section(result_lines, CHILD_TEMPLATE)
 
-    if 'random_number_recv' in values[0]:
-        return values[0]
+    filtered_values = list(filter(lambda x: 'random_number_recv' in x, values))
 
-    return values[1]
+    if len(filtered_values) == 0:
+        res = values[0]
+    else:
+        res = filtered_values[0]
+
+    res_keys = res.keys()
+
+    validate_output(res_keys, CHILD_KEYWORDS, 'CHILD')
+
+    return res
 
 def parse_epilog(result_lines):
     values = extract_section(result_lines, EPILOG_TEMPLATE)
 
-    return values[0]
+    res = values[0]
+    res_keys = res.keys()
+
+    validate_output(res_keys, EPILOG_KEYWORDS, 'EPILOG')
+
+    return res
 
 def parse_output(result_lines):
     return {
@@ -180,9 +249,13 @@ def main(binary_path):
 
     output = exec_command(binary_path)
     output = sanitize_output(output)
-    results = parse_output(output)
 
-    print('COMMAND: pingpong')
+    try:
+        results = parse_output(output)
+    except Exception as e:
+        print(e)
+        sys.exit(1)
+
     print('check pipe fds')
     execute_rules(results, PIPE_FDS_RULES)
     print('check process ids')
