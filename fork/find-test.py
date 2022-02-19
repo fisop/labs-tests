@@ -7,7 +7,7 @@ from pathlib import Path
 from shutil import rmtree, copy
 from subprocess import check_output
 
-from utils import format_result
+from utils import are_equal, format_result
 
 TEMP_FISOP_DIR_PATH = '/tmp/fisop-fork'
 TEMP_DIR_PATH = 'tmpdirpattern'
@@ -97,12 +97,6 @@ def exec_command(args):
             )
         )
     )
-
-def are_equal(expected, current):
-    # ^ symmetric difference operator
-    diff = expected ^ current
-
-    return len(diff) == 0
 
 def test_pattern_matching(binary_path, pattern, sensitive=True):
     if sensitive:

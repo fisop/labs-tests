@@ -5,7 +5,7 @@ import sys
 from math import ceil
 from subprocess import check_output
 
-from utils import format_result
+from utils import are_equal, format_result
 
 MAX_ARGS = 4
 
@@ -41,12 +41,6 @@ def exec_command(args, input_lines):
             check_output(args, input=encoded_lines, universal_newlines=True).split('\n')
         )
     )
-
-def are_equal(expected, current):
-    # ^ symmetric difference operator
-    diff = expected ^ current
-
-    return len(diff) == 0
 
 def test_packaging(binary_path, test_lines):
     return exec_command([binary_path, './argcounter.py'], test_lines)
