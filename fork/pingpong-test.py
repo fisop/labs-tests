@@ -4,7 +4,7 @@ import re
 import sys
 
 from unicodedata import normalize
-from subprocess import check_output
+from subprocess import PIPE, run
 
 from ttp import ttp
 from utils import color, format_result
@@ -116,7 +116,8 @@ NUMBER_VALUES_RULES = [
 ]
 
 def exec_command(binary_path):
-    return check_output([binary_path], universal_newlines=True)
+    proc = run([binary_path], stdout=PIPE, universal_newlines=True)
+    return proc.stdout
 
 def extract_values(results):
     """

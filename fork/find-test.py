@@ -5,7 +5,7 @@ import sys
 from os import makedirs
 from pathlib import Path
 from shutil import rmtree, copy
-from subprocess import check_output
+from subprocess import PIPE, run
 
 from utils import are_equal, format_result
 
@@ -88,13 +88,14 @@ def remove_test_structure():
     rmtree(TEMP_FISOP_DIR_PATH)
 
 def exec_command(args):
+    proc = run(args, stdout=PIPE, universal_newlines=True, cwd=TEMP_FISOP_DIR_PATH)
+
+    output = proc.stdout.split('\n')
+
     return set(
         map(
             lambda k: k[2:] if k.startswith("./") else k,
-            filter(
-                lambda l: l != '',
-                check_output(args, universal_newlines=True, cwd=TEMP_FISOP_DIR_PATH).split('\n')
-            )
+            filter(lambda l: l != '', output)
         )
     )
 

@@ -62,7 +62,7 @@ def test_primes(binary_path, max_number):
         map(
             lambda s: int(s.split(' ')[1]),
             filter(
-                lambda x: re.search(r'primo \d{1,4}', x),
+                lambda x: re.search(r'primo \d{1,4}', x, re.IGNORECASE),
                 exec_command([binary_path, str(max_number)])
             )
         )

@@ -3,7 +3,7 @@
 import sys
 
 from math import ceil
-from subprocess import check_output
+from subprocess import PIPE, run
 
 from utils import are_equal, format_result
 
@@ -35,12 +35,11 @@ TESTS = [
 def exec_command(args, input_lines):
     encoded_lines = '\n'.join(input_lines) + '\n'
 
-    return set(
-        filter(
-            lambda l: l != '',
-            check_output(args, input=encoded_lines, universal_newlines=True).split('\n')
-        )
-    )
+    proc = run(args, stdout=PIPE, input=encoded_lines, universal_newlines=True)
+
+    output = proc.stdout.split('\n')
+
+    return set(filter(lambda l: l != '', output))
 
 def test_packaging(binary_path, test_lines):
     return exec_command([binary_path, './argcounter.py'], test_lines)
