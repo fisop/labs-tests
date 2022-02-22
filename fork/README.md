@@ -15,7 +15,7 @@ pip install ttp
 Consultando la _ayuda_ disponible mediante el flag `-h` o `--help`, se obtiene:
 
 ```
-usage: test-fork [-h] [-c {find,pingpong,xargs}] labpath
+usage: test-fork [-h] [-c {find,pingpong,xargs,primes}] labpath
 
 Test runner for Lab Fork - FISOP
 
@@ -24,6 +24,6 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-  -c {find,pingpong,xargs}, --command {find,pingpong,xargs}
+  -c {find,pingpong,xargs,primes}, --command {find,pingpong,xargs,primes}
                         command to be tested
 ```
