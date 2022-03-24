@@ -3,7 +3,7 @@
 from subprocess import Popen
 from argparse import ArgumentParser
 
-COMMANDS = ['find', 'pingpong', 'xargs']
+COMMANDS = ['find', 'pingpong', 'xargs', 'primes']
 
 def exec_test(lab_path, command):
     p = Popen([f'./{command}-test.py', f'{lab_path}/{command}'])
@@ -13,17 +13,20 @@ def exec_all_tests(lab_path):
     for command in COMMANDS:
         exec_test(lab_path, command)
 
-def make(lab_path):
+def make(lab_path, command):
     # clean any previous compilation
     p = Popen(['make', 'clean'], cwd=lab_path)
     p.wait()
 
     # compile the commands
-    p = Popen(['make'], cwd=lab_path)
+    if command is 'all':
+        p = Popen(['make'], cwd=lab_path)
+    else:
+        p = Popen(['make', command], cwd=lab_path)
     p.wait()
 
 def main(lab_path, command):
-    make(lab_path)
+    make(lab_path, command)
 
     if command is 'all':
         exec_all_tests(lab_path)
@@ -35,14 +38,16 @@ if __name__ == '__main__':
 
     parser.add_argument(
         'labpath',
-        help='path to the lab under test')
+        help='path to the lab under test'
+    )
 
     parser.add_argument(
         '-c',
         '--command',
         choices=COMMANDS,
         default='all',
-        help='command to be tested')
+        help='command to be tested'
+    )
 
     args = parser.parse_args()
 

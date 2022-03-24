@@ -9,3 +9,9 @@ def color(text, color_name):
 
 def format_result(result):
     return color('OK', 'green') if result else color('FAIL', 'red')
+
+def are_equal(expected, current):
+    # ^ symmetric difference operator
+    diff = expected ^ current
+
+    return len(diff) == 0
