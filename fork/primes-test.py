@@ -46,7 +46,7 @@ def exec_command(args):
 
     stderr = proc.stderr
 
-    if stderr is not '':
+    if stderr != '':
         raise Exception(stderr)
 
     output = proc.stdout.split('\n')

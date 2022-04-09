@@ -19,7 +19,7 @@ def make(lab_path, command):
     p.wait()
 
     # compile the commands
-    if command is 'all':
+    if command == 'all':
         p = Popen(['make'], cwd=lab_path)
     else:
         p = Popen(['make', command], cwd=lab_path)
@@ -28,7 +28,7 @@ def make(lab_path, command):
 def main(lab_path, command):
     make(lab_path, command)
 
-    if command is 'all':
+    if command == 'all':
         exec_all_tests(lab_path)
     else:
         exec_test(lab_path, command)
