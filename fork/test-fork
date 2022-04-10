@@ -13,11 +13,11 @@ def exec_all_tests(lab_path):
     for command in COMMANDS:
         exec_test(lab_path, command)
 
-def make(lab_path, command):
-    # clean any previous compilation
+def make_clean(lab_path):
     p = Popen(['make', 'clean'], cwd=lab_path)
     p.wait()
 
+def make(lab_path, command):
     # compile the commands
     if command == 'all':
         p = Popen(['make'], cwd=lab_path)
@@ -26,12 +26,16 @@ def make(lab_path, command):
     p.wait()
 
 def main(lab_path, command):
+    make_clean(lab_path)
+
     make(lab_path, command)
 
     if command == 'all':
         exec_all_tests(lab_path)
     else:
         exec_test(lab_path, command)
+
+    make_clean(lab_path)
 
 if __name__ == '__main__':
     parser = ArgumentParser(description='Test runner for Lab Fork - FISOP')
