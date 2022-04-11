@@ -27,3 +27,11 @@ optional arguments:
   -c {find,pingpong,xargs,primes}, --command {find,pingpong,xargs,primes}
                         command to be tested
 ```
+
+## Docker
+
+También existe la posibilidad de utilizar [Docker](https://docs.docker.com/engine/install/) para correr las pruebas. Alcanza con ejecutar:
+
+```bash
+./run labpath [-c {find,pingpong,xargs,primes}]
+```
