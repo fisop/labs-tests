@@ -1,4 +1,4 @@
-#! /usr/bin/python3 
+#! /usr/bin/env python3
 import os
 import shutil
 import sys
@@ -104,12 +104,14 @@ def run_tests(shell_binary: str, reflector_aux: str):
     count = 1
     failed = 0
     total = len(tests)
-    for test in tests:
+    for test_path in tests:
+        test = ShellTest(test_path, subs_map)
         try:
-            custom_test(subs_map, test)
-            cprint("PASS {}/{}: {}".format(count, total, test), "green")
+            test.run()
+            # custom_test(subs_map, test)
+            cprint("PASS {}/{}: {} ({})".format(count, total, test.description, test_path), "green")
         except Exception as e:
-            cprint("FAIL {}/{}: {}. Exception ocurred: {}".format(count, total, test, e), "red")
+            cprint("FAIL {}/{}: {} ({}). Exception ocurred: {}".format(count, total, test.description, test_path, e), "red")
             failed += 1
         finally:
             count += 1
