@@ -1,13 +1,13 @@
-# Lab fork
+# Pruebas para el lab shell
 
 ## Ejecución de las pruebas
 
-Las pruebas verifican el comportamiento de la shell implementada enviandole
+Las pruebas verifican el comportamiento de la shell implementada enviándole
 comandos y leyendo la salida de los programas que ésta crea. En este sentido, el
 prompt genera problemas al parsear la salida.
 
 Por esta razón es necesario compilar la shell en **modo no interactivo**. Esto
-quire decir que no se ve a imprimir el _prompt_ ni ningún mensaje de
+quiere decir que no se ve a imprimir el _prompt_ ni ningún mensaje de
 error/debug.
 
 La shell de la cátedra viene preparada para compilar la shell en modo no
@@ -27,7 +27,7 @@ vuelvan a compilar con `make clean; make`.
 ### Ejecución nativa
 
 Para ejecutar las pruebas de forma nativa, es necesario instalar las
-dependencias. Deben contar con una versión de `pyton3` instalda, junto con su
+dependencias. Deben contar con una versión de `python3` instalada, junto con su
 correspondiente `pip3` para poder instalar módulos de Python.
 
 Las únicas dependencias para la ejecución son los módulos de python `[termcolor]` y `[pyyaml]`.
@@ -60,10 +60,10 @@ _export_.
 
 ```
 # Opción 1: indicar la shell en cada comando
-TARGET_SHELL=/path/a/mi/shell make test
+TARGET_SHELL=/path/al/directorio/de/mi/shell make test
 
 # Opción 2: definir la variable globalmente para la sesión actual
-export TARGET_SHELL=/path/a/mi/shell
+export TARGET_SHELL=/path/al/directorio/de/mi/shell
 make test
 ```
 
@@ -124,14 +124,20 @@ PASS 23/23: Test exit built-in (./tests/simple_exit.yaml)
 23 out of 23 tests passed
 ```
 
-**DISCLAIMER**: estas pruebas están en versión beta y es posible que tengan
+**IMPORTANTE**: estas pruebas están en versión beta y es posible que tengan
 bugs/errores. Solo las probamos con `/bin/bash`, otras terminales podrían tener
-fallas. Si encuentran un error, avisenos!
+fallas. Si encuentran un error, avísenos!
 
 ## Docker
 
 También existe la posibilidad de utilizar [Docker](https://docs.docker.com/engine/install/) para correr las pruebas. Alcanza con ejecutar:
 
 ```bash
-./run labpath
+./run /path/al/directorio/de/mi/shell
 ```
+
+**IMPORTANTE**: El código que corre el contenedor va a ejecutar `make clean;
+make -B -e TEST_SHELL=true` que se indicó más arriba, con lo cual va a
+**modificar el directorio de su shell** tal y como si hubieran ejecutado esos
+comandos. Esto no es un problema pero es algo a tener en cuenta.
+
