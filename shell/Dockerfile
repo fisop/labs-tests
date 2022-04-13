@@ -1,8 +1,8 @@
 FROM ubuntu:20.04
 
-RUN apt-get update && apt-get install -y make gcc build-essential gcc-multilib
+RUN apt-get update && apt-get install -y make gcc build-essential gcc-multilib python3.8 python3-pip
 
-RUN adduser -D fisop
+RUN adduser --disabled-login --disabled-password fisop
 USER fisop
 ENV PATH="/home/fisop/.local/bin:${PATH}"
 
