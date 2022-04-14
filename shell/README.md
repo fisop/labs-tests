@@ -60,10 +60,10 @@ _export_.
 
 ```
 # Opción 1: indicar la shell en cada comando
-TARGET_SHELL=/path/al/directorio/de/mi/shell make test
+TARGET_SHELL=/path/al/binario/de/mi/shell make test
 
 # Opción 2: definir la variable globalmente para la sesión actual
-export TARGET_SHELL=/path/al/directorio/de/mi/shell
+export TARGET_SHELL=/path/al/binario/de/mi/shell
 make test
 ```
 
