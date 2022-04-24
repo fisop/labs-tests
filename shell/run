@@ -9,4 +9,4 @@ LAB_PATH=$1
 shift
 
 docker build -t test-shell-runner -f Dockerfile .
-docker run -v $LAB_PATH:/shell/lab-to-test test-shell-runner make test
+docker run --rm -v $LAB_PATH:/shell/lab-to-test test-shell-runner make test
