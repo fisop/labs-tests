@@ -1,4 +1,5 @@
-#! /usr/bin/python3
+#!/usr/bin/python3
+
 import os
 import shutil
 import sys
@@ -21,7 +22,7 @@ def compare_strings(current, expected):
         But got:
         
         {}
-        """.format(expected.encode() if expected else None, current.encode() if expected else none)
+        """.format(expected.encode() if expected else None, current.encode() if expected else None)
         # """.format(expected, current)
         return message
     return None
