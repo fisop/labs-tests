@@ -106,6 +106,7 @@ def main(binary_path):
     print(f'packaging arguments [ARGS IN PACKAGE: {MAX_ARGS}]')
 
     execute_tests(binary_path, TESTS)
+    print()
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
