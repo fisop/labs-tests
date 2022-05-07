@@ -13,6 +13,7 @@ TEMP_FISOP_DIR_PATH = '/tmp/fisop-fork'
 TEMP_DIR_PATH = 'tmpdirpattern'
 TEMP_SUB_DIR_PATH = 'tmpsubdirpattern'
 LINES = [
+    f'{TEMP_FISOP_DIR_PATH}/{TEMP_DIR_PATH}/.hiddenfilepattern',
     f'{TEMP_FISOP_DIR_PATH}/{TEMP_DIR_PATH}/tmpfilepattern1',
     f'{TEMP_FISOP_DIR_PATH}/{TEMP_DIR_PATH}/tmpfilepattern2',
     f'{TEMP_FISOP_DIR_PATH}/{TEMP_DIR_PATH}/tmpfilePATTERN',
@@ -29,6 +30,7 @@ TESTS = [
         'pattern': 'pat',
         'sensitive': True,
         'expected-lines': {
+            'tmpdirpattern/.hiddenfilepattern',
             'tmpdirpattern/tmpfilepattern2',
             'tmpdirpattern/tmpsubdirpattern/tmpfileinsubdirpat',
             'tmpdirpattern/tmpsubdirpattern',
@@ -65,6 +67,7 @@ TESTS = [
         'pattern': 'pat',
         'sensitive': False,
         'expected-lines': {
+            'tmpdirpattern/.hiddenfilepattern',
             'tmpdirpattern/tmpfilePAT',
             'tmpdirpattern/tmpfilepattern2',
             'tmpdirpattern/tmpsubdirpattern/tmpfileinsubdirPAT',
