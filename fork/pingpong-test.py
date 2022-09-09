@@ -8,7 +8,7 @@ from unicodedata import normalize
 from subprocess import PIPE, run
 
 from ttp import ttp
-from utils import VALGRIND_COMMAND, color, format_result
+from utils import VALGRIND_COMMAND, color, format_result, run_command
 
 PROLOG_KEYWORDS = [
     'parent_pid',
@@ -115,19 +115,6 @@ NUMBER_VALUES_RULES = [
         lambda results: results['epilog']['random_number_recv'] ==
             results['parent']['random_number_send']),
 ]
-
-def exec_command(args, run_valgrind=False):
-    if run_valgrind:
-        args = VALGRIND_COMMAND + args
-
-    proc = run(args, stdout=PIPE, stderr=PIPE, universal_newlines=True)
-
-    if run_valgrind:
-        valgrind = proc.stderr.split('\n')
-    else:
-        valgrind = []
-
-    return proc.stdout, valgrind
 
 def extract_values(results):
     """
@@ -256,7 +243,11 @@ def sanitize_output(raw_output):
     return formatted
 
 def execute_tests(binary_path, run_valgrind = False):
-    output, valgrind = exec_command([binary_path], run_valgrind)
+    output, valgrind_report, errors = run_command([binary_path], run_valgrind=run_valgrind)
+
+    if errors is not None:
+        print(f"{color(errors, 'red')}")
+
     output = sanitize_output(output)
 
     try:
@@ -273,8 +264,7 @@ def execute_tests(binary_path, run_valgrind = False):
     execute_rules(results, NUMBER_VALUES_RULES)
 
     if run_valgrind:
-        print('  VALGRIND OUTPUT:')
-        print('\t' + '\t'.join(map(lambda l: l + '\n', valgrind)))
+        print(valgrind_report)
 
 def main(binary_path, run_valgrind):
     print('COMMAND: pingpong')

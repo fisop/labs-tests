@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
+from base64 import encode
 import sys
 
 from math import ceil
 from subprocess import PIPE, run
 
-from utils import VALGRIND_COMMAND, are_equal, format_result
+from utils import VALGRIND_COMMAND, are_equal, color, format_result, run_command
 
 MAX_ARGS = 4
 
@@ -32,25 +33,15 @@ TESTS = [
     }
 ]
 
-def exec_command(args, input_lines, run_valgrind=False):
-    if run_valgrind:
-        args = VALGRIND_COMMAND + args
-
-    encoded_lines = '\n'.join(input_lines) + '\n'
-
-    proc = run(args, stdout=PIPE, stderr=PIPE, input=encoded_lines, universal_newlines=True)
-
-    output = proc.stdout.split('\n')
-
-    if run_valgrind:
-        valgrind = proc.stderr.split('\n')
-    else:
-        valgrind = []
-
-    return set(filter(lambda l: l != '', output)), valgrind
-
 def test_packaging(binary_path, test_lines, run_valgrind=False):
-    return exec_command([binary_path, './argcounter.py'], test_lines, run_valgrind)
+    encoded_lines = '\n'.join(test_lines) + '\n'
+
+    output, valgrind_report, errors = run_command([binary_path, './argcounter.py'], input=encoded_lines, run_valgrind=run_valgrind)
+
+    if errors is not None:
+        print(f"{color(errors, 'red')}")
+
+    return set(filter(lambda l: l != '', output.split('\n'))), valgrind_report
 
 def generate_input(amount_of_arguments):
     return [f'arg{i}' for i in range(amount_of_arguments)]
@@ -76,7 +67,7 @@ def run_test(binary_path, test_config, run_valgrind=False):
     test_lines = generate_input(amount_of_arguments)
     expected_lines = generate_output(amount_of_arguments)
 
-    result_lines, valgrind = test_packaging(binary_path, test_lines, run_valgrind)
+    result_lines, valgrind_report = test_packaging(binary_path, test_lines, run_valgrind)
 
     res = are_equal(expected_lines, result_lines)
 
@@ -97,8 +88,7 @@ Got:
         print(assertion_msg)
 
     if run_valgrind:
-        print('  VALGRIND OUTPUT:')
-        print('\t' + '\t'.join(map(lambda l: l + '\n', valgrind)))
+        print(valgrind_report)
 
     return res
 

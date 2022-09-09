@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from ast import arg
 import sys
 
 from os import makedirs
@@ -7,7 +8,7 @@ from pathlib import Path
 from shutil import rmtree, copy
 from subprocess import PIPE, run
 
-from utils import VALGRIND_COMMAND, are_equal, format_result
+from utils import VALGRIND_COMMAND, are_equal, color, format_result, run_command
 
 TEMP_FISOP_DIR_PATH = '/tmp/fisop-fork'
 TEMP_DIR_PATH = 'tmpdirpattern'
@@ -91,24 +92,17 @@ def remove_test_structure():
     rmtree(TEMP_FISOP_DIR_PATH)
 
 def exec_command(args, run_valgrind=False):
-    if run_valgrind:
-        args = VALGRIND_COMMAND + args
+    output, valgrind_report, errors = run_command(args, cwd=TEMP_FISOP_DIR_PATH, run_valgrind=run_valgrind)
 
-    proc = run(args, stdout=PIPE, stderr=PIPE, universal_newlines=True, cwd=TEMP_FISOP_DIR_PATH)
-
-    if run_valgrind:
-        valgrind = proc.stderr.split('\n')
-    else:
-        valgrind = []
-
-    output = proc.stdout.split('\n')
+    if errors is not None:
+        print(f"{color(errors, 'red')}")
 
     return set(
         map(
             lambda k: k[2:] if k.startswith("./") else k,
-            filter(lambda l: l != '', output)
+            filter(lambda l: l != '', output.split('\n'))
         )
-    ), valgrind
+    ), valgrind_report
 
 def test_pattern_matching(binary_path, pattern, sensitive=True, run_valgrind=False):
     if sensitive:
@@ -124,7 +118,7 @@ def run_test(binary_path, test_config, run_valgrind=False):
     sensitive = test_config['sensitive']
     expected_lines = test_config['expected-lines']
 
-    result_lines, valgrind = test_pattern_matching(
+    result_lines, valgrind_report = test_pattern_matching(
         binary_path,
         pattern,
         sensitive=sensitive,
@@ -150,8 +144,7 @@ Got:
         print(assertion_msg)
 
     if run_valgrind:
-        print('  VALGRIND OUTPUT:')
-        print('\t' + '\t'.join(map(lambda l: l + '\n', valgrind)))
+        print(valgrind_report)
 
     return res
 

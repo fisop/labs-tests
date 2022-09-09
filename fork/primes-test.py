@@ -7,7 +7,7 @@ from os import getpid
 from resource import prlimit, RLIMIT_NPROC, RLIMIT_NOFILE 
 from subprocess import PIPE, run
 
-from utils import VALGRIND_COMMAND, are_equal, format_result
+from utils import VALGRIND_COMMAND, are_equal, format_result, run_command
 
 TESTS = [
     {
@@ -46,26 +46,15 @@ def exec_command(args, run_valgrind=False):
     #   (found it empirically -pic)
     prlimit(getpid(), RLIMIT_NPROC, (1900, 2000))
 
-    if run_valgrind:
-        args = VALGRIND_COMMAND + args
+    output, valgrind_report, errors = run_command(args, run_valgrind=run_valgrind)
 
-    proc = run(args, stdout=PIPE, stderr=PIPE, universal_newlines=True)
+    if not run_valgrind and errors:
+        raise Exception(errors)
 
-    stderr = proc.stderr
-    output = proc.stdout.split('\n')
-
-    if not run_valgrind and stderr != '':
-        raise Exception(stderr)
-
-    if run_valgrind:
-        valgrind = stderr.split('\n')
-    else:
-        valgrind = []
-
-    return set(filter(lambda l: l != '', output)), valgrind
+    return set(filter(lambda l: l != '', output.split('\n'))), valgrind_report
 
 def test_primes(binary_path, max_number, run_valgrind):
-    output, valgrind = exec_command([binary_path, str(max_number)], run_valgrind)
+    output, valgrind_report = exec_command([binary_path, str(max_number)], run_valgrind)
 
     # - the `filter` removes lines not matching with the
     # pattern `primo %d`
@@ -79,7 +68,7 @@ def test_primes(binary_path, max_number, run_valgrind):
                 output
             )
         )
-    ), valgrind
+    ), valgrind_report
 
 def generate_primes(number):
     # JOS code (grade-lab5) to calculate primes in a given range
@@ -98,7 +87,7 @@ def run_test(binary_path, test_config, run_valgrind=False):
     resource_msg = None
 
     try:
-        result_lines, valgrind = test_primes(binary_path, number, run_valgrind and valgrind_enabled)
+        result_lines, valgrind_report = test_primes(binary_path, number, run_valgrind and valgrind_enabled)
         res = are_equal(expected_lines, result_lines)
     except Exception as e:
         resource_msg = f'Resource error - {e}'
@@ -129,8 +118,7 @@ NOT prime numbers:
         print(assertion_msg)
 
     if run_valgrind and valgrind_enabled:
-        print('  VALGRIND OUTPUT:')
-        print('\t' + '\t'.join(map(lambda l: l + '\n', valgrind)))
+        print(valgrind_report)
 
     return res
 
