@@ -7,28 +7,32 @@ from os import getpid
 from resource import prlimit, RLIMIT_NPROC, RLIMIT_NOFILE 
 from subprocess import PIPE, run
 
-from utils import are_equal, format_result
+from utils import VALGRIND_COMMAND, are_equal, format_result
 
 TESTS = [
     {
         'description': 'correct primes up to 10',
-        'number': 10
+        'number': 10,
+        'valgrind_enabled': True
     },
     {
         'description': 'correct primes up to 100',
-        'number': 100
+        'number': 100,
+        'valgrind_enabled': False
     },
     {
         'description': 'correct primes up to 1000',
-        'number': 1000
+        'number': 1000,
+        'valgrind_enabled': False
     },
     {
         'description': 'correct primes up to 10000',
-        'number': 10000
+        'number': 10000,
+        'valgrind_enabled': False
     }
 ]
 
-def exec_command(args):
+def exec_command(args, run_valgrind=False):
     # limits the number of open file descriptor
     # that the process or any of its child can have
     #
@@ -42,18 +46,27 @@ def exec_command(args):
     #   (found it empirically -pic)
     prlimit(getpid(), RLIMIT_NPROC, (1900, 2000))
 
+    if run_valgrind:
+        args = VALGRIND_COMMAND + args
+
     proc = run(args, stdout=PIPE, stderr=PIPE, universal_newlines=True)
 
     stderr = proc.stderr
-
-    if stderr != '':
-        raise Exception(stderr)
-
     output = proc.stdout.split('\n')
 
-    return set(filter(lambda l: l != '', output))
+    if not run_valgrind and stderr != '':
+        raise Exception(stderr)
 
-def test_primes(binary_path, max_number):
+    if run_valgrind:
+        valgrind = stderr.split('\n')
+    else:
+        valgrind = []
+
+    return set(filter(lambda l: l != '', output)), valgrind
+
+def test_primes(binary_path, max_number, run_valgrind):
+    output, valgrind = exec_command([binary_path, str(max_number)], run_valgrind)
+
     # - the `filter` removes lines not matching with the
     # pattern `primo %d`
     # - the `map` transforms the previous pattern leaving
@@ -63,10 +76,10 @@ def test_primes(binary_path, max_number):
             lambda s: int(s.split(' ')[1]),
             filter(
                 lambda x: re.search(r'primo \d{1,4}', x, re.IGNORECASE),
-                exec_command([binary_path, str(max_number)])
+                output
             )
         )
-    )
+    ), valgrind
 
 def generate_primes(number):
     # JOS code (grade-lab5) to calculate primes in a given range
@@ -75,20 +88,21 @@ def generate_primes(number):
         yield rest[0]
         rest = [n for n in rest if n % rest[0]]
 
-def run_test(binary_path, test_config):
+def run_test(binary_path, test_config, run_valgrind=False):
     description = test_config['description']
     number = test_config['number']
+    valgrind_enabled = test_config['valgrind_enabled']
 
     expected_lines = set(generate_primes(number))
 
     resource_msg = None
 
     try:
-        result_lines = test_primes(binary_path, number)
+        result_lines, valgrind = test_primes(binary_path, number, run_valgrind and valgrind_enabled)
         res = are_equal(expected_lines, result_lines)
     except Exception as e:
-        res = False
         resource_msg = f'Resource error - {e}'
+        res = False
 
     print(f'  {description}: {format_result(res)}')
 
@@ -113,30 +127,35 @@ NOT prime numbers:
 {diff_res}
             """
         print(assertion_msg)
-    
+
+    if run_valgrind and valgrind_enabled:
+        print('  VALGRIND OUTPUT:')
+        print('\t' + '\t'.join(map(lambda l: l + '\n', valgrind)))
+
     return res
 
-def execute_tests(binary_path, tests):
+def execute_tests(binary_path, tests, run_valgrind=False):
     success = 0
     total = len(tests)
 
     for test_config in tests:
-        res = run_test(binary_path, test_config)
+        res = run_test(binary_path, test_config, run_valgrind)
         if res:
             success += 1
 
     print(f'{success}/{total} passed')
 
-def main(binary_path):
+def main(binary_path, run_valgrind):
     print('COMMAND: primes')
 
-    execute_tests(binary_path, TESTS)
+    execute_tests(binary_path, TESTS, run_valgrind)
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print('Usage: primes-test.py PRIMES_BIN_PATH')
+        print('Usage: primes-test.py PRIMES_BIN_PATH [-v]')
         sys.exit(1)
 
     binary_path = sys.argv[1]
+    run_valgrind = True if len(sys.argv) > 2 and sys.argv[2] == '-v' else False
 
-    main(binary_path)
+    main(binary_path, run_valgrind)

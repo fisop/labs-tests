@@ -4,6 +4,8 @@ COLORS = {
     'green': "\033[32m"
 }
 
+VALGRIND_COMMAND = ['valgrind', '--track-fds=yes', '--leak-check=full', '--show-leak-kinds=all']
+
 def color(text, color_name):
     return COLORS[color_name] + text + COLORS["default"]
 
