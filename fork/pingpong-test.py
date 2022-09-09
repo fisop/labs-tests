@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from doctest import FAIL_FAST
 import re
 import sys
 
@@ -7,7 +8,7 @@ from unicodedata import normalize
 from subprocess import PIPE, run
 
 from ttp import ttp
-from utils import color, format_result
+from utils import VALGRIND_COMMAND, color, format_result
 
 PROLOG_KEYWORDS = [
     'parent_pid',
@@ -115,9 +116,18 @@ NUMBER_VALUES_RULES = [
             results['parent']['random_number_send']),
 ]
 
-def exec_command(binary_path):
-    proc = run([binary_path], stdout=PIPE, universal_newlines=True)
-    return proc.stdout
+def exec_command(args, run_valgrind=False):
+    if run_valgrind:
+        args = VALGRIND_COMMAND + args
+
+    proc = run(args, stdout=PIPE, stderr=PIPE, universal_newlines=True)
+
+    if run_valgrind:
+        valgrind = proc.stderr.split('\n')
+    else:
+        valgrind = []
+
+    return proc.stdout, valgrind
 
 def extract_values(results):
     """
@@ -245,10 +255,8 @@ def sanitize_output(raw_output):
 
     return formatted
 
-def main(binary_path):
-    print('COMMAND: pingpong')
-
-    output = exec_command(binary_path)
+def execute_tests(binary_path, run_valgrind = False):
+    output, valgrind = exec_command([binary_path], run_valgrind)
     output = sanitize_output(output)
 
     try:
@@ -263,13 +271,24 @@ def main(binary_path):
     execute_rules(results, PROCESS_IDS_RULES)
     print('check random number values')
     execute_rules(results, NUMBER_VALUES_RULES)
+
+    if run_valgrind:
+        print('  VALGRIND OUTPUT:')
+        print('\t' + '\t'.join(map(lambda l: l + '\n', valgrind)))
+
+def main(binary_path, run_valgrind):
+    print('COMMAND: pingpong')
+
+    execute_tests(binary_path, run_valgrind)
+
     print()
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print('Usage: pingpong-test.py PINGPONG_BIN_PATH')
+        print('Usage: pingpong-test.py PINGPONG_BIN_PATH [-v]')
         sys.exit(1)
 
     binary_path = sys.argv[1]
+    run_valgrind = True if len(sys.argv) > 2 and sys.argv[2] == '-v' else False
 
-    main(binary_path)
+    main(binary_path, run_valgrind)
