@@ -15,7 +15,7 @@ pip install ttp
 Consultando la _ayuda_ disponible mediante el flag `-h` o `--help`, se obtiene:
 
 ```
-usage: test-fork [-h] [-c {find,pingpong,xargs,primes}] labpath
+usage: test-fork [-h] [-c {find,pingpong,xargs,primes}] [-v] labpath
 
 Test runner for Lab Fork - FISOP
 
@@ -26,6 +26,7 @@ optional arguments:
   -h, --help            show this help message and exit
   -c {find,pingpong,xargs,primes}, --command {find,pingpong,xargs,primes}
                         command to be tested
+  -v, --valgrind        Run tests within Valgrind
 ```
 
 ## Docker
@@ -33,5 +34,5 @@ optional arguments:
 También existe la posibilidad de utilizar [Docker](https://docs.docker.com/engine/install/) para correr las pruebas. Alcanza con ejecutar:
 
 ```bash
-./run labpath [-c {find,pingpong,xargs,primes}]
+./run labpath [-c {find,pingpong,xargs,primes}] [-v]
 ```
