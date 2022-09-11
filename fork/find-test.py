@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from ast import arg
 import sys
 
 from os import makedirs
@@ -7,7 +8,7 @@ from pathlib import Path
 from shutil import rmtree, copy
 from subprocess import PIPE, run
 
-from utils import are_equal, format_result
+from utils import VALGRIND_COMMAND, are_equal, color, format_result, run_command
 
 TEMP_FISOP_DIR_PATH = '/tmp/fisop-fork'
 TEMP_DIR_PATH = 'tmpdirpattern'
@@ -90,33 +91,39 @@ def create_test_structure():
 def remove_test_structure():
     rmtree(TEMP_FISOP_DIR_PATH)
 
-def exec_command(args):
-    proc = run(args, stdout=PIPE, universal_newlines=True, cwd=TEMP_FISOP_DIR_PATH)
+def exec_command(args, run_valgrind=False):
+    output, valgrind_report, errors = run_command(args, cwd=TEMP_FISOP_DIR_PATH, run_valgrind=run_valgrind)
 
-    output = proc.stdout.split('\n')
+    if errors is not None:
+        print(f"{color(errors, 'red')}")
 
     return set(
         map(
             lambda k: k[2:] if k.startswith("./") else k,
-            filter(lambda l: l != '', output)
+            filter(lambda l: l != '', output.split('\n'))
         )
-    )
+    ), valgrind_report
 
-def test_pattern_matching(binary_path, pattern, sensitive=True):
+def test_pattern_matching(binary_path, pattern, sensitive=True, run_valgrind=False):
     if sensitive:
         command = [binary_path, pattern]
     else:
         command = [binary_path, '-i', pattern]
 
-    return exec_command(command)
+    return exec_command(command, run_valgrind)
 
-def run_test(binary_path, test_config):
+def run_test(binary_path, test_config, run_valgrind=False):
     description = test_config['description']
     pattern = test_config['pattern']
     sensitive = test_config['sensitive']
     expected_lines = test_config['expected-lines']
 
-    result_lines = test_pattern_matching(binary_path, pattern, sensitive=sensitive)
+    result_lines, valgrind_report = test_pattern_matching(
+        binary_path,
+        pattern,
+        sensitive=sensitive,
+        run_valgrind=run_valgrind
+    )
 
     res = are_equal(expected_lines, result_lines)
 
@@ -136,35 +143,40 @@ Got:
         """
         print(assertion_msg)
 
+    if run_valgrind:
+        print(valgrind_report)
+
     return res
 
-def execute_tests(binary_path, tests):
+def execute_tests(binary_path, tests, run_valgrind=False):
     success = 0
     total = len(tests)
 
     for test_config in tests:
-        res = run_test(binary_path, test_config)
+        res = run_test(binary_path, test_config, run_valgrind)
         if res:
             success += 1
 
-    print(f'{success}/{total} passed')
+    if not run_valgrind:
+        print(f'{success}/{total} passed')
 
-def main(binary_path):
+def main(binary_path, run_valgrind):
     create_test_structure()
     tmp_binary_path = f'{TEMP_FISOP_DIR_PATH}/find'
     copy(binary_path, tmp_binary_path)
 
     print('COMMAND: find')
-    execute_tests(tmp_binary_path, TESTS)
+    execute_tests(tmp_binary_path, TESTS, run_valgrind)
 
     remove_test_structure()
     print()
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print('Usage: find-test.py FIND_BIN_PATH')
+        print('Usage: find-test.py FIND_BIN_PATH [-v]')
         sys.exit(1)
 
     binary_path = sys.argv[1]
+    run_valgrind = True if len(sys.argv) > 2 and sys.argv[2] == '-v' else False
 
-    main(binary_path)
+    main(binary_path, run_valgrind)

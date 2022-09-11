@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
+from base64 import encode
 import sys
 
 from math import ceil
 from subprocess import PIPE, run
 
-from utils import are_equal, format_result
+from utils import VALGRIND_COMMAND, are_equal, color, format_result, run_command
 
 MAX_ARGS = 4
 
@@ -32,17 +33,15 @@ TESTS = [
     }
 ]
 
-def exec_command(args, input_lines):
-    encoded_lines = '\n'.join(input_lines) + '\n'
+def test_packaging(binary_path, test_lines, run_valgrind=False):
+    encoded_lines = '\n'.join(test_lines) + '\n'
 
-    proc = run(args, stdout=PIPE, input=encoded_lines, universal_newlines=True)
+    output, valgrind_report, errors = run_command([binary_path, './argcounter.py'], input=encoded_lines, run_valgrind=run_valgrind)
 
-    output = proc.stdout.split('\n')
+    if errors is not None:
+        print(f"{color(errors, 'red')}")
 
-    return set(filter(lambda l: l != '', output))
-
-def test_packaging(binary_path, test_lines):
-    return exec_command([binary_path, './argcounter.py'], test_lines)
+    return set(filter(lambda l: l != '', output.split('\n'))), valgrind_report
 
 def generate_input(amount_of_arguments):
     return [f'arg{i}' for i in range(amount_of_arguments)]
@@ -61,14 +60,14 @@ def generate_output(amount_of_arguments):
 
     return set(lines)
 
-def run_test(binary_path, test_config):
+def run_test(binary_path, test_config, run_valgrind=False):
     description = test_config['description']
     amount_of_arguments = test_config['amount-arguments']
 
     test_lines = generate_input(amount_of_arguments)
     expected_lines = generate_output(amount_of_arguments)
 
-    result_lines = test_packaging(binary_path, test_lines)
+    result_lines, valgrind_report = test_packaging(binary_path, test_lines, run_valgrind)
 
     res = are_equal(expected_lines, result_lines)
 
@@ -88,31 +87,35 @@ Got:
         """
         print(assertion_msg)
 
+    if run_valgrind:
+        print(valgrind_report)
+
     return res
 
-def execute_tests(binary_path, tests):
+def execute_tests(binary_path, tests, run_valgrind=False):
     success = 0
     total = len(tests)
 
     for test_config in tests:
-        res = run_test(binary_path, test_config)
+        res = run_test(binary_path, test_config, run_valgrind)
         if res:
             success += 1
 
     print(f'{success}/{total} passed')
 
-def main(binary_path):
+def main(binary_path, run_valgrind):
     print('COMMAND: xargs')
     print(f'packaging arguments [ARGS IN PACKAGE: {MAX_ARGS}]')
 
-    execute_tests(binary_path, TESTS)
+    execute_tests(binary_path, TESTS, run_valgrind)
     print()
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print('Usage: xargs-test.py XARGS_BIN_PATH')
+        print('Usage: xargs-test.py XARGS_BIN_PATH [-v]')
         sys.exit(1)
 
     binary_path = sys.argv[1]
+    run_valgrind = True if len(sys.argv) > 2 and sys.argv[2] == '-v' else False
 
-    main(binary_path)
+    main(binary_path, run_valgrind)
