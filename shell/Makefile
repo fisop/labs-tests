@@ -25,7 +25,7 @@ ifndef TARGET_SHELL
 endif
 
 clean:
-	rm reflector
+	rm -f reflector
 
 .PHONY: all clean compile-target-shell test
 
